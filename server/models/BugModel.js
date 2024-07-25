@@ -27,19 +27,5 @@ var bugSchema = new mongoose.Schema({
   },
 });
 
-bugSchema.methods.attack = function () {
-  const chance = Math.random() * 100;
-  const finalAttackRate = this.attackRate * this.rank;
-  const totalPower = this.power * this.rank;
-
-  if (finalAttackRate > chance) {
-    console.log(
-      `${this.name} successfully attacked with ${totalPower} damages\n${chance}%`
-    );
-  } else {
-    console.log(`${this.name} failed to attack\n${chance}%`);
-  }
-};
-
 //Export the model
 module.exports = mongoose.model("Bug", bugSchema);

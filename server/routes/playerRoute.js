@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
-const { createPlayer } = require("../controllers/playerController");
+const {
+  createPlayer,
+  loginPlayer,
+} = require("../controllers/playerController");
 
-router.route("/").post(createPlayer);
+router.post("/", createPlayer);
+router.post("/login", loginPlayer);
 
 module.exports = router;

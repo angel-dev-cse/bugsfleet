@@ -5,12 +5,25 @@ const Bug = require("../models/BugModel");
 // @route POST /api/Bugs
 // @access Private
 const createBug = asyncHandler(async (req, res) => {
-  const Bug = new Bug(req.body);
-  await Bug.save();
-  res.status(201).json(Bug);
+  const bug = new Bug(req.body);
+  await bug.save();
+  res.status(201).json(bug);
 });
 
 // @desc    Fetch all Bugs
 // @route   GET /api/Bugs
+// @access  Public
+const getBugs = asyncHandler(async (req, res) => {
+  const bugs = await Bug.find({});
+  res.json(bugs);
+});
 
-module.exports = { createBug };
+// @desc    Fetch a random bug
+// @route   GET /api/Bugs
+// @access  Public
+const getRandomBug = asyncHandler(async (req, res) => {
+  const bug = await Bug.aggregate([{ $sample: { size: 1 } }]);
+  res.json(bug);
+});
+
+module.exports = { createBug, getBugs, getRandomBug };

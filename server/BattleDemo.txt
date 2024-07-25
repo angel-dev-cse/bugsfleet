@@ -1,0 +1,18 @@
+===Battle Ensues===
+
+Attacker: Player A
+Team: 2* Spider, 1* Mantis, 3* Roach, 3* Roach, 2* Mantis
+
+Defender: Player B
+Team: 3* Spider, 2* Mantis, 1* Roach, 2* Roach, 2* Mantis
+
+Round 1
+=========
+Attacker Bug: 2* Spider
+Invader Bug: 3* Spider
+2* Spider did 24 Damage
+3* Spider did 36 Damage
+Player A's 2* Spider is exhasted and returned to base (died off)
+Stat:
+2* Spider : [Remaining Health, Power, Attack Rate, Attack Speed] [0, 24, 25, 18]
+2* Roach : [Remaining Health, Power, Attack Rate, Attack Speed] [6, 24, 25, 18]

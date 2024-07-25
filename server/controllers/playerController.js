@@ -10,4 +10,14 @@ const createPlayer = asyncHandler(async (req, res) => {
   res.status(201).json(player);
 });
 
-module.exports = { createPlayer };
+// @desc Login an Player
+// @route POST /api/Player/login
+// @access Public
+const loginPlayer = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  const player = await Player.findByCredentials(email, password);
+  const token = await player.generateAuthToken();
+  res.json({ player, token });
+});
+
+module.exports = { createPlayer, loginPlayer };
