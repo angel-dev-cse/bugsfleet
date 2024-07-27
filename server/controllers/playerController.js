@@ -254,7 +254,7 @@ const getTeam = asyncHandler(async (req, res) => {
   res.json(bugs);
 });
 
-// @desc Merge two bugs: 1*-75%, 2*-55%, 3*-40%, 4*-25% | 1*+1*=2*, 2*+2*=3*, 3*+3*=4* | potion increases chance by 25% | delete second copy and increase rank of first one by 1
+// @desc Merge two bugs: 1*-75%, 2*-55%, 3*-40%, 4*-25% | 1*+1*=2*, 2*+2*=3*, 3*+3*=4* | Gene increases chance by 25% | delete second copy and increase rank of first one by 1
 // @input slot_id_1 and slot_id_2 (team and storage slot id are same)
 // @output success or failure message
 // @route POST /api/player/merge
@@ -332,7 +332,9 @@ const merge = asyncHandler(async (req, res) => {
     );
 
     if (chance > successChance) {
+      // incrase the rank of the first bug by 1
       bugObj1.rank += 1;
+      // remove the second bug
       slotType2.splice(index2, 1);
 
       console.log("Success\n", slotType1, "----", slotType2);
@@ -343,12 +345,16 @@ const merge = asyncHandler(async (req, res) => {
         } upgraded to ${bugObj1.rank}*`,
       });
     } else {
+      // give compensation with gene fragments (15 times the rank of the bugs)
+      const geneFragments = bugObj1.rank * 15;
+      player.inventory.geneFragments += geneFragments;
+      // remove the second bug
       slotType2.splice(index2, 1);
 
       console.log("Failed\n", slotType1, "----", slotType2);
       // await player.save();
       res.status(201).json({
-        message: `Merge failed! ${bugObj2.rank}* ${bug2.name} lost in the process`,
+        message: `Merge failed! ${bugObj2.rank}* ${bug2.name} lost in the process. You received ${geneFragments} gene fragments as compensation!`,  
       });
     }
   } else {
