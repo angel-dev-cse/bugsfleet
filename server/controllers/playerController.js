@@ -47,7 +47,9 @@ const summon = asyncHandler(async (req, res) => {
   const player = req.player;
 
   if (player.storage.length >= 30) {
-    res.json({ message: "Storage full! Please empty some slots before summmoning again!" });
+    res.json({
+      message: "Storage full! Please empty some slots before summmoning again!",
+    });
     return;
   }
   // summon() method in PlayerModel.js
@@ -59,7 +61,157 @@ const summon = asyncHandler(async (req, res) => {
     res.json(result.message);
   }
 
-  console.log(player.storage.length)
+  console.log(player.storage.length);
 });
 
-module.exports = { createPlayer, login, logout, summon };
+// @desc Remove a bug from storage
+// @route DELETE /api/player/storage
+// @access Private
+// @returns array of bugs in storage
+const removeFromStorage = asyncHandler(async (req, res) => {
+  const player = req.player;
+  // slot_id is storage slot id not the bug id
+  const slotID = req.body.slot_id;
+
+  if (slotID) {
+    const index = player.storage.findIndex((slot) => {
+      return slot._id.toString() === slotID;
+    });
+
+    if (index === -1) {
+      res.json({ message: "Bug not found in storage!" });
+      return;
+    }
+
+    // player.storage.splice(storageIndex, 1);
+
+    await player.save();
+    res.json(player.storage);
+  } else {
+    res.status(400).json({ message: "Empty request!" });
+    return;
+  }
+});
+
+// @desc Get player storage
+// @route GET /api/player/storage
+// @access Private
+// @returns array of bugs in storage
+const getStorage = asyncHandler(async (req, res) => {
+  const Bug = require("../models/BugModel");
+  const storage = req.player.storage;
+  let bugs = [];
+
+  for (const bugObj of storage) {
+    const bug = await Bug.findById(bugObj.bug);
+
+    if (bug) {
+      bugs.push({
+        _id: bug._id,
+        storage_id: bugObj._id,
+        name: bug.name,
+        class: bug.class,
+        health: bug.health,
+        power: bug.power,
+        attackRate: bug.attackRate,
+        attackSpeed: bug.attackSpeed,
+        rank: bugObj.rank, // Ensure rank is included in the final response
+      });
+    }
+  }
+
+  res.json(bugs);
+});
+
+// @desc Get player team
+// @route GET /api/player/team
+// @access Private
+// @returns array of bugs in team
+const getTeam = asyncHandler(async (req, res) => {
+  const Bug = require("../models/BugModel");
+  const team = req.player.team;
+  let bugs = [];
+
+  for (const bugObj of team) {
+    const bug = await Bug.findById(bugObj.bug);
+
+    if (bug) {
+      bugs.push({
+        _id: bug._id,
+        team_id: bugObj._id,
+        name: bug.name,
+        class: bug.class,
+        health: bug.health,
+        power: bug.power,
+        attackRate: bug.attackRate,
+        attackSpeed: bug.attackSpeed,
+        rank: bugObj.rank, // Ensure rank is included in the final response
+      });
+    }
+  }
+
+  res.json(bugs);
+});
+
+// @desc Adds a bug to the player's team from storage
+// @route POST /api/player/team
+// @access Private
+// @returns array of bugs in team
+const addToTeam = asyncHandler(async (req, res) => {
+  const player = req.player;
+  const bugId = req.body.bugId;
+
+  if (player.team.length >= 5) {
+    res.json({
+      message: "Team full! Please remove a bug before adding another!",
+    });
+    return;
+  }
+
+  const bugIndex = player.storage.findIndex((bug) => bug.bug == bugId);
+
+  if (bugIndex === -1) {
+    res.json({ message: "Bug not found in storage!" });
+    return;
+  }
+
+  player.team.push(player.storage[bugIndex]);
+  player.storage.splice(bugIndex, 1);
+
+  await player.save();
+  res.json(player.team);
+});
+
+// @desc Remove from team and add back to storage
+// @route DELETE /api/player/team
+// @access Private
+// @returns array of bugs in team
+const removeFromTeam = asyncHandler(async (req, res) => {
+  const player = req.player;
+  const teamId = req.body.teamId;
+
+  const bugIndex = player.team.findIndex((bug) => bug._id == teamId);
+
+  if (bugIndex === -1) {
+    res.json({ message: "Bug not found in team!" });
+    return;
+  }
+
+  player.storage.push(player.team[bugIndex]);
+  player.team.splice(bugIndex, 1);
+
+  await player.save();
+  res.json(player.team);
+});
+
+module.exports = {
+  createPlayer,
+  login,
+  logout,
+  summon, //adds to storage (if space)
+  removeFromStorage,
+  getStorage,
+  addToTeam, //adds to team (if space)
+  removeFromTeam,
+  getTeam,
+};

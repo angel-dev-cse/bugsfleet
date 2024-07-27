@@ -18,9 +18,10 @@ const getBugs = asyncHandler(async (req, res) => {
   res.json(bugs);
 });
 
-// @desc    Fetch a random bug
+// @desc    Fetch random bugs if No args are passed then returns array of 1 bug
 // @route   GET /api/Bugs
 // @access  Public
+// @returns {Array} of bugs
 const getRandomBug = asyncHandler(async (req, res, filter = { size: 1 }) => {
   // by default summons a single bug but can accept more
   const bug = await Bug.aggregate([{ $sample: { size: 1 } }]);
