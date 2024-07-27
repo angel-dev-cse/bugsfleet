@@ -94,6 +94,11 @@ const playerSchema = new mongoose.Schema({
   team: [playerBugSchema],
   storage: [playerBugSchema],
   inventory: {
+    // for battles
+    tickets: {
+      type: Number,
+      default: 0,
+    },
     eggs: {
       type: Number,
       default: 0,
@@ -222,7 +227,10 @@ playerSchema.methods.summon = async function () {
       const eggshell = Math.ceil(chance / 2);
       this.inventory.eggshell += eggshell;
       await this.save();
-      return { success: false, message: `Failed to summon a bug! Awarded ${eggshell} eggshells!` };
+      return {
+        success: false,
+        message: `Failed to summon a bug! Awarded ${eggshell} eggshells!`,
+      };
     }
   } else {
     return { success: false, message: "Not enough eggs!" };
