@@ -69,6 +69,7 @@ const summon = asyncHandler(async (req, res) => {
 // @access Private
 // @returns array of bugs in storage
 const removeFromStorage = asyncHandler(async (req, res) => {
+  const Bug = require("../models/BugModel");
   const player = req.player;
   // slot_id is storage slot id not the bug id
   const slotID = req.body.slot_id;
@@ -79,14 +80,19 @@ const removeFromStorage = asyncHandler(async (req, res) => {
     });
 
     if (index === -1) {
-      res.json({ message: "Bug not found in storage!" });
+      res.status(400).json({ message: "Bug not found in storage!" });
       return;
     }
 
-    // player.storage.splice(storageIndex, 1);
+    const bugObj = player.storage[index];
+    const bug = await Bug.findById(bugObj.bug);
+    if (bug) {
+      res.status(201).json({ message: `${bugObj.rank}* ${bug.name} removed from the storage! Remaining bugs in storage: ${player.storage.length - 1}` });
+    }
+
+    player.storage.splice(index, 1);
 
     await player.save();
-    res.json(player.storage);
   } else {
     res.status(400).json({ message: "Empty request!" });
     return;
