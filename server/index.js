@@ -5,6 +5,8 @@ const app = express();
 const dotenv = require("dotenv");
 dotenv.config();
 
+const cookieParser = require("cookie-parser");
+
 // connect to mongoDB
 const connectDB = require("./utils/dbConnection");
 connectDB();
@@ -15,6 +17,7 @@ const playerRouter = require("./routes/playerRoute");
 const bugsRouter = require("./routes/bugRoute");
 
 app.use(express.json());
+app.use(cookieParser());
 app.use("/api/players", playerRouter);
 app.use("/api/bugs", bugsRouter);
 

@@ -21,9 +21,10 @@ const getBugs = asyncHandler(async (req, res) => {
 // @desc    Fetch a random bug
 // @route   GET /api/Bugs
 // @access  Public
-const getRandomBug = asyncHandler(async (req, res) => {
+const getRandomBug = asyncHandler(async (req, res, filter = { size: 1 }) => {
+  // by default summons a single bug but can accept more
   const bug = await Bug.aggregate([{ $sample: { size: 1 } }]);
-  res.json(bug);
+  return bug;
 });
 
 module.exports = { createBug, getBugs, getRandomBug };

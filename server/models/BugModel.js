@@ -7,6 +7,11 @@ var bugSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  class: {
+    type: String,
+    required: true,
+    enum: ["supreme", "elite", "common"],
+  },
   health: {
     type: Number,
     required: true,

@@ -73,6 +73,11 @@ const playerSchema = new mongoose.Schema({
     trim: true,
   },
   rank: {
+    // Show leaderboard based on rank points
+    type: Number,
+    default: 0,
+  },
+  league: {
     // Will show appropriate ranks later form another array
     type: Number,
     default: 0,
@@ -112,6 +117,11 @@ const playerSchema = new mongoose.Schema({
         type: String,
         required: true,
       },
+      type: {
+        type: String,
+        required: true,
+        enum: ["auth", "reset"],
+      },
     },
   ],
 });
@@ -128,8 +138,18 @@ playerSchema.pre("save", async function (next) {
 // Method to generate auth token
 playerSchema.methods.generateAuthToken = async function () {
   const player = this;
-  const token = jwt.sign({ _id: player._id.toString() }, "your_jwt_secret");
-  player.tokens = player.tokens.concat({ token });
+  const token = jwt.sign(
+    { _id: player._id.toString() },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "3 days",
+    }
+  );
+
+  // remove old tokens of "auth" type and add the new "auth" token in the array
+  player.tokens = player.tokens.filter((token) => token.type !== "auth");
+  player.tokens = player.tokens.concat({ token, type: "auth" });
+
   await player.save();
   return token;
 };
@@ -159,22 +179,24 @@ playerSchema.methods.toJSON = function () {
 };
 
 // Summon a bug
-playerSchema.methods.summmon = async function () {
+playerSchema.methods.summon = async function () {
   const bugController = require("../controllers/bugController");
 
   if (this.inventory.eggs > 0) {
     this.inventory.eggs -= 1;
     const chance = Math.random() * 100;
 
-    if (chance > 85) {
+    if (chance > 10) {
       const bug = await bugController.getRandomBug();
-      this.storage.push({ bug: bug, rank: 1 });
+      this.storage.push({ bug: bug[0]._id, rank: 1 });
+      await this.save();
+      return { success: true, message: `Summmoned 1* ${bug[0].name}!`, bug: bug };
     } else {
-      console.log("Failed to summon a bug");
+      await this.save();
+      return { success: false, message: "Failed to summon a bug!" };
     }
-    await this.save();
   } else {
-    console.log("Not enough eggs to summon a bug");
+    return { success: false, message: "Not enough eggs!" };
   }
 };
 
