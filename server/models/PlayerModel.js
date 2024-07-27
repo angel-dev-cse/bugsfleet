@@ -106,7 +106,7 @@ const playerSchema = new mongoose.Schema({
       type: Number,
       default: 0,
     },
-    // gene fragments, pheromone fragments are obtainable from battles
+    // gene fragments, pheromone fragments and eggs are obtainable from battles
     geneFragment: {
       type: Number,
       default: 0,

@@ -12,7 +12,8 @@ const {
   getTeam,
   removeFromStorage,
   addToTeam,
-  removeFromTeam
+  removeFromTeam,
+  merge
 } = require("../controllers/playerController");
 
 router.post("/", createPlayer);
@@ -24,5 +25,6 @@ router.get("/storage", auth, getStorage);
 router.post("/team", auth, addToTeam);
 router.delete("/team", auth, removeFromTeam);
 router.get("/team", auth, getTeam);
+router.post("/merge", auth, merge);
 
 module.exports = router;

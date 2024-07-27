@@ -118,7 +118,7 @@ const getStorage = asyncHandler(async (req, res) => {
     if (bug) {
       bugs.push({
         _id: bug._id,
-        slot_id: bugObj._id,
+        storage_slot_id: bugObj._id,
         name: bug.name,
         class: bug.class,
         health: bug.health,
@@ -150,7 +150,9 @@ const addToTeam = asyncHandler(async (req, res) => {
       return;
     }
 
-    const index = player.storage.findIndex((slot) => slot._id.toString() === slotID);
+    const index = player.storage.findIndex(
+      (slot) => slot._id.toString() === slotID
+    );
 
     if (index === -1) {
       res.json({ message: "Bug not found in storage!" });
@@ -164,9 +166,7 @@ const addToTeam = asyncHandler(async (req, res) => {
       res.status(201).json({
         message: `${bugObj.rank}* ${
           bug.name
-        } added to active team! Total bugs in team: ${
-          player.team.length + 1
-        }`,
+        } added to active team! Total bugs in team: ${player.team.length + 1}`,
       });
     }
 
@@ -254,6 +254,108 @@ const getTeam = asyncHandler(async (req, res) => {
   res.json(bugs);
 });
 
+// @desc Merge two bugs: 1*-75%, 2*-55%, 3*-40%, 4*-25% | 1*+1*=2*, 2*+2*=3*, 3*+3*=4* | potion increases chance by 25% | delete second copy and increase rank of first one by 1
+// @input slot_id_1 and slot_id_2 (team and storage slot id are same)
+// @output success or failure message
+// @route POST /api/player/merge
+// @access Private
+const merge = asyncHandler(async (req, res) => {
+  const Bug = require("../models/BugModel");
+
+  // req.body format {slot_id_1: "id", slot_type_1:"team/storage", slot_id_2: "id", slot_type_2:"team/storage"}
+  const player = req.player;
+  const slotID1 = req.body.slot_id_1;
+  const slotID2 = req.body.slot_id_2;
+
+  // slotType1 and slotType2 are arrays of bugs so we can avoid searching and writing extra codes
+
+  let slotType1 = [];
+  let slotType2 = [];
+
+  if (req.body.slot_type_1 === "storage") {
+    slotType1 = player.storage;
+  } else {
+    slotType1 = player.team;
+  }
+  if (req.body.slot_type_2 === "storage") {
+    slotType2 = player.storage;
+  } else {
+    slotType2 = player.team;
+  }
+
+  if (slotID1 && slotID2 && slotID1 !== slotID2) {
+    const index1 = slotType1.findIndex(
+      (slot) => slot._id.toString() === slotID1
+    );
+    const index2 = slotType2.findIndex(
+      (slot) => slot._id.toString() === slotID2
+    );
+
+    // if any of them are missing
+    if (index1 === -1 || index2 === -1) {
+      console.log(index1, index2);
+      res.status(400).json({ message: "Invalid bugs select for merge" });
+      return;
+    }
+
+    const bugObj1 = slotType1[index1];
+    const bugObj2 = slotType2[index2];
+    const bug1 = await Bug.findById(bugObj1.bug);
+    const bug2 = await Bug.findById(bugObj2.bug);
+
+    console.log(bug1, bug2);
+
+    // ensure both bugs are of the same name and same rank
+    if (bugObj1.rank !== bugObj2.rank || bug1.name !== bug2.name) {
+      res
+        .status(400)
+        .json({ message: "Bugs must be of the same name and rank" });
+      return;
+    }
+
+    // calculate the merge chance
+    const chance = Math.random() * 100;
+    // Assign success chance based on rank
+    let successChance = 0;
+    if (bugObj1.rank === 1) {
+      successChance = 75;
+    } else if (bugObj1.rank === 2) {
+      successChance = 55;
+    } else if (bugObj1.rank === 3) {
+      successChance = 40;
+    } else {
+      successChance = 25;
+    }
+
+    console.log(
+      `For upgrading ${bugObj1.rank}* ${bug1.name} success chance is ${successChance}%`
+    );
+
+    if (chance > successChance) {
+      bugObj1.rank += 1;
+      slotType2.splice(index2, 1);
+
+      console.log("Success\n", slotType1, "----", slotType2);
+      // await player.save();
+      res.status(201).json({
+        message: `Merge successful! ${bugObj1.rank - 1}* ${
+          bug1.name
+        } upgraded to ${bugObj1.rank}*`,
+      });
+    } else {
+      slotType2.splice(index2, 1);
+
+      console.log("Failed\n", slotType1, "----", slotType2);
+      // await player.save();
+      res.status(201).json({
+        message: `Merge failed! ${bugObj2.rank}* ${bug2.name} lost in the process`,
+      });
+    }
+  } else {
+    res.status(400).json({ message: "Empty request!" });
+  }
+});
+
 module.exports = {
   createPlayer,
   login,
@@ -264,4 +366,5 @@ module.exports = {
   addToTeam, //adds to team (if space)
   removeFromTeam,
   getTeam,
+  merge,
 };
