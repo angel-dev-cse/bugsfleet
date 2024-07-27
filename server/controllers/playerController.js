@@ -60,8 +60,6 @@ const summon = asyncHandler(async (req, res) => {
   } else {
     res.json(result.message);
   }
-
-  console.log(player.storage.length);
 });
 
 // @desc Remove a bug from storage
@@ -72,7 +70,7 @@ const removeFromStorage = asyncHandler(async (req, res) => {
   const Bug = require("../models/BugModel");
   const player = req.player;
   // slot_id is storage slot id not the bug id
-  const slotID = req.body.slot_id;
+  const slotID = req.body.storage_slot_id;
 
   if (slotID) {
     const index = player.storage.findIndex((slot) => {
@@ -87,7 +85,13 @@ const removeFromStorage = asyncHandler(async (req, res) => {
     const bugObj = player.storage[index];
     const bug = await Bug.findById(bugObj.bug);
     if (bug) {
-      res.status(201).json({ message: `${bugObj.rank}* ${bug.name} removed from the storage! Remaining bugs in storage: ${player.storage.length - 1}` });
+      res.status(201).json({
+        message: `${bugObj.rank}* ${
+          bug.name
+        } removed from the storage! Remaining bugs in storage: ${
+          player.storage.length - 1
+        }`,
+      });
     }
 
     player.storage.splice(index, 1);
@@ -114,37 +118,7 @@ const getStorage = asyncHandler(async (req, res) => {
     if (bug) {
       bugs.push({
         _id: bug._id,
-        storage_id: bugObj._id,
-        name: bug.name,
-        class: bug.class,
-        health: bug.health,
-        power: bug.power,
-        attackRate: bug.attackRate,
-        attackSpeed: bug.attackSpeed,
-        rank: bugObj.rank, // Ensure rank is included in the final response
-      });
-    }
-  }
-
-  res.json(bugs);
-});
-
-// @desc Get player team
-// @route GET /api/player/team
-// @access Private
-// @returns array of bugs in team
-const getTeam = asyncHandler(async (req, res) => {
-  const Bug = require("../models/BugModel");
-  const team = req.player.team;
-  let bugs = [];
-
-  for (const bugObj of team) {
-    const bug = await Bug.findById(bugObj.bug);
-
-    if (bug) {
-      bugs.push({
-        _id: bug._id,
-        team_id: bugObj._id,
+        slot_id: bugObj._id,
         name: bug.name,
         class: bug.class,
         health: bug.health,
@@ -164,28 +138,46 @@ const getTeam = asyncHandler(async (req, res) => {
 // @access Private
 // @returns array of bugs in team
 const addToTeam = asyncHandler(async (req, res) => {
+  const Bug = require("../models/BugModel");
   const player = req.player;
-  const bugId = req.body.bugId;
+  const slotID = req.body.slot_id; // which slot's bug to add to team
 
-  if (player.team.length >= 5) {
-    res.json({
-      message: "Team full! Please remove a bug before adding another!",
-    });
-    return;
+  if (slotID) {
+    if (player.team.length >= 5) {
+      res.json({
+        message: "Team full! Please remove a bug before adding another!",
+      });
+      return;
+    }
+
+    const index = player.storage.findIndex((slot) => slot._id.toString() === slotID);
+
+    if (index === -1) {
+      res.json({ message: "Bug not found in storage!" });
+      return;
+    }
+
+    // show confirmation message
+    const bugObj = player.storage[index];
+    const bug = await Bug.findById(bugObj.bug);
+    if (bug) {
+      res.status(201).json({
+        message: `${bugObj.rank}* ${
+          bug.name
+        } added to active team! Total bugs in team: ${
+          player.team.length + 1
+        }`,
+      });
+    }
+
+    player.team.push(player.storage[index]);
+    player.storage.splice(index, 1);
+
+    await player.save();
+    console.log(player.team);
+  } else {
+    res.status(400).json({ message: "Empty request!" });
   }
-
-  const bugIndex = player.storage.findIndex((bug) => bug.bug == bugId);
-
-  if (bugIndex === -1) {
-    res.json({ message: "Bug not found in storage!" });
-    return;
-  }
-
-  player.team.push(player.storage[bugIndex]);
-  player.storage.splice(bugIndex, 1);
-
-  await player.save();
-  res.json(player.team);
 });
 
 // @desc Remove from team and add back to storage
@@ -193,21 +185,73 @@ const addToTeam = asyncHandler(async (req, res) => {
 // @access Private
 // @returns array of bugs in team
 const removeFromTeam = asyncHandler(async (req, res) => {
+  const Bug = require("../models/BugModel");
   const player = req.player;
-  const teamId = req.body.teamId;
+  // slot_id is team slot id not the bug id
+  const slotID = req.body.team_slot_id;
 
-  const bugIndex = player.team.findIndex((bug) => bug._id == teamId);
+  if (slotID) {
+    const index = player.team.findIndex((slot) => {
+      return slot._id.toString() === slotID;
+    });
 
-  if (bugIndex === -1) {
-    res.json({ message: "Bug not found in team!" });
+    if (index === -1) {
+      res.status(400).json({ message: "Bug not found in team!" });
+      return;
+    }
+
+    const bugObj = player.team[index];
+    const bug = await Bug.findById(bugObj.bug);
+    if (bug) {
+      res.status(201).json({
+        message: `${bugObj.rank}* ${
+          bug.name
+        } removed from the team! Remaining bugs in team: ${
+          player.team.length - 1
+        }`,
+      });
+    }
+
+    player.team.splice(index, 1);
+
+    // Return the bug to storage
+    player.storage.push(bugObj);
+
+    await player.save();
+  } else {
+    res.status(400).json({ message: "Empty request!" });
     return;
   }
+});
 
-  player.storage.push(player.team[bugIndex]);
-  player.team.splice(bugIndex, 1);
+// @desc Get player team
+// @route GET /api/player/team
+// @access Private
+// @returns array of bugs in team
+const getTeam = asyncHandler(async (req, res) => {
+  const Bug = require("../models/BugModel");
+  const team = req.player.team;
+  let bugs = [];
 
-  await player.save();
-  res.json(player.team);
+  for (const bugObj of team) {
+    const bug = await Bug.findById(bugObj.bug);
+
+    if (bug) {
+      bugs.push({
+        _id: bug._id,
+        team_slot_id: bugObj._id,
+        name: bug.name,
+        class: bug.class,
+        health: bug.health,
+        power: bug.power,
+        attackRate: bug.attackRate,
+        attackSpeed: bug.attackSpeed,
+        rank: bugObj.rank, // Ensure rank is included in the final response
+      });
+    }
+  }
+
+  res.json(bugs);
 });
 
 module.exports = {

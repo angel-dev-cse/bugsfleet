@@ -8,9 +8,9 @@ var bugSchema = new mongoose.Schema({
     unique: true,
   },
   class: {
-    type: String,
+    type: Number,
     required: true,
-    enum: ["supreme", "elite", "common"],
+    enum: [1, 2, 3, 4], // 1:common, 2:elite, 3:supreme, 4:legendary
   },
   health: {
     type: Number,

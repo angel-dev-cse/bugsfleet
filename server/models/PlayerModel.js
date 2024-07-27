@@ -98,6 +98,28 @@ const playerSchema = new mongoose.Schema({
       type: Number,
       default: 0,
     },
+    genes: {
+      type: Number,
+      default: 0,
+    },
+    pheromones: {
+      type: Number,
+      default: 0,
+    },
+    // gene fragments, pheromone fragments are obtainable from battles
+    geneFragment: {
+      type: Number,
+      default: 0,
+    },
+    pheromoneFragment: {
+      type: Number,
+      default: 0,
+    },
+    // eggshells are obtainable from failed summons 100 shells = 1 egg
+    eggshell: {
+      type: Number,
+      default: 0,
+    },
   },
   // should have battle records
   battleRecords: {
@@ -186,14 +208,21 @@ playerSchema.methods.summon = async function () {
     this.inventory.eggs -= 1;
     const chance = Math.random() * 100;
 
-    if (chance > 10) {
+    if (chance > 85) {
       const bug = await bugController.getRandomBug();
       this.storage.push({ bug: bug[0]._id, rank: 1 });
       await this.save();
-      return { success: true, message: `Summmoned 1* ${bug[0].name}!`, bug: bug };
+      return {
+        success: true,
+        message: `Summmoned 1* ${bug[0].name}! Bugs in storage: ${this.storage.length}`,
+        bug: bug,
+      };
     } else {
+      // failed summon compensates with eggshells
+      const eggshell = Math.ceil(chance / 2);
+      this.inventory.eggshell += eggshell;
       await this.save();
-      return { success: false, message: "Failed to summon a bug!" };
+      return { success: false, message: `Failed to summon a bug! Awarded ${eggshell} eggshells!` };
     }
   } else {
     return { success: false, message: "Not enough eggs!" };
