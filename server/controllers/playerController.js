@@ -337,8 +337,8 @@ const merge = asyncHandler(async (req, res) => {
       // remove the second bug
       slotType2.splice(index2, 1);
 
-      console.log("Success\n", slotType1, "----", slotType2);
-      // await player.save();
+      await player.save();
+
       res.status(201).json({
         message: `Merge successful! ${bugObj1.rank - 1}* ${
           bug1.name
@@ -346,15 +346,15 @@ const merge = asyncHandler(async (req, res) => {
       });
     } else {
       // give compensation with gene fragments (15 times the rank of the bugs)
-      const geneFragments = bugObj1.rank * 15;
-      player.inventory.geneFragments += geneFragments;
+      const geneFragment = bugObj1.rank * 15;
+      player.inventory.geneFragment += geneFragment;
       // remove the second bug
       slotType2.splice(index2, 1);
+      
+      await player.save();
 
-      console.log("Failed\n", slotType1, "----", slotType2);
-      // await player.save();
       res.status(201).json({
-        message: `Merge failed! ${bugObj2.rank}* ${bug2.name} lost in the process. You received ${geneFragments} gene fragments as compensation!`,  
+        message: `Merge failed! ${bugObj2.rank}* ${bug2.name} lost in the process. You received ${geneFragment} gene fragments as compensation!`,
       });
     }
   } else {
