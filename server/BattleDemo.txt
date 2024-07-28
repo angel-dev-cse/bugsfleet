@@ -1,18 +1,141 @@
 ===Battle Ensues===
-
+// Teams stats modified by rank and sorted by attackSpeed
 Attacker: Player A
 Team: 2* Spider, 1* Mantis, 3* Roach, 3* Roach, 2* Mantis
+[
+    {
+        _id:team1_slot_id,
+        health: 30,
+        power: 24,
+        attackRate: 32,
+        attackSpeed: 25,
+
+    },
+    {
+        _id:team1_slot_id,
+        health: 30,
+        power: 24,
+        attackRate: 32,
+        attackSpeed: 25,
+        
+    }
+]
 
 Defender: Player B
 Team: 3* Spider, 2* Mantis, 1* Roach, 2* Roach, 2* Mantis
+{
+    player_id: 1111
+}
+team:
+[
+    {
+        _id:team1_slot_id,
+        name: Spider,
+        rank: 3,
+        health: 30,
+        power: 24,
+        attackRate: 32,
+        attackSpeed: 25,
 
-Round 1
-=========
-Attacker Bug: 2* Spider
-Invader Bug: 3* Spider
-2* Spider did 24 Damage
-3* Spider did 36 Damage
+    },
+    {
+        _id:team1_slot_id,
+        name: Mantis,
+        rank: 2,
+        health: 30,
+        power: 24,
+        attackRate: 32,
+        attackSpeed: 25,
+        
+    }
+]
+======================
+Round 1 > Take the first two insect from teams
+======================
+Attacker Bug: {
+    _id:team1_slot_id,
+    health: 30,
+    power: 24,
+    attackRate: 32,
+    attackSpeed: 25,
+
+},
+Defender Bug: 
+{
+    _id:team1_slot_id,
+    health: 30,
+    power: 24,
+    attackRate: 32,
+    attackSpeed: 25,
+
+}
+
+2* Spider did 24 Damage > Reduce defender's health by damage
+3* Spider did 36 Damage > If health>0 > Reduce attacker's health by damage
+======================
+Update teams after Round > Remove insect with 0 health
+======================
+Continue until one team is empty...
+
+And announce team with remaining alive bugs as winner!
+======================
+Battle:{
+    battle_id: 1234,
+    winner: 1111,
+    invader: {
+        player:{
+            id: 1111,
+            name: Player A
+        },
+        team: [
+            {
+                slot_id: 3453,
+                name: Spider,
+                rank: 2,
+                health: 20,
+                power: 24,
+                attackSpeed: 21,
+                attackSpeed: 32
+            }...
+        ]
+    },
+    defender: {
+        player:{
+            id: 2222,
+            name: Player B
+        },
+        team: [
+            {
+                slot_id: 3453,
+                name: Spider,
+                rank: 1,
+                health: 20,
+                power: 24,
+                attackSpeed: 21,
+                attackSpeed: 32
+            }...
+        ]
+    },
+    rounds:[
+        {
+            round_id: 1,
+            roundVader: [Battle.invader, 0], 
+            roundFender: [Battle.defender, 0],
+            damage: [24, 36]
+        },
+        {
+            round_id: 2,
+            roundVader: [Battle.defender, 0], 
+            roundFender: [Battle.invader, 1],
+            damage: [24, 36]
+        },
+    ]
+}
+
+Player A's 2* Spider did 48 damage
+Player B's 3* Mantis did 33 damage
 Player A's 2* Spider is exhasted and returned to base (died off)
 Stat:
 2* Spider : [Remaining Health, Power, Attack Rate, Attack Speed] [0, 24, 25, 18]
-2* Roach : [Remaining Health, Power, Attack Rate, Attack Speed] [6, 24, 25, 18]
+3* Spider: [Remaining Health, Power, Attack Rate, Attack Speed] [6, 24, 25, 18]
+{round:1; invader:{_id:team1_slot_id, health: 0, power: 24, attackRate: 25, attackSpeed:18}, defender: team2_slot_id, }

@@ -43,10 +43,8 @@ const logout = asyncHandler(async (req, res) => {
   res.json({ message: "Logged out" });
 });
 
-
-
 module.exports = {
   createPlayer,
   login,
-  logout
+  logout,
 };
