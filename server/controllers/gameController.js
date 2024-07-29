@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Player = require("../models/PlayerModel");
+const Battle = require("../models/BattleModel");
 const Bug = require("../models/BugModel");
 
 const summon = asyncHandler(async (req, res) => {
@@ -192,6 +193,7 @@ const getTeam = asyncHandler(async (req, res) => {
   let bugs = [];
 
   for (const bugObj of team) {
+    console.log(bugObj);
     const bug = await Bug.findById(bugObj.bug);
 
     if (bug) {
@@ -317,6 +319,55 @@ const merge = asyncHandler(async (req, res) => {
   }
 });
 
+async function prepareTeam(player) {
+  let team = [];
+
+  for (const bugObj of player.team) {
+    const rank = bugObj.rank;
+    try {
+      const bug = await Bug.findById(bugObj.bug);
+      team.push({
+        name: bug.name,
+        rank: rank,
+        health: bug.health * rank,
+        power: bug.power * rank,
+        attackRate: bug.attackRate * rank,
+        attackSpeed: bug.attackSpeed,
+      });
+    } catch (error) {
+      console.error(`Error fetching bug with id ${bugObj.bug}:`, error);
+    }
+  }
+
+  // sort the teams based on attack speed in decscending order
+  team.sort((a, b) => b.attackSpeed - a.attackSpeed);
+
+  return team;
+}
+
+const battle = asyncHandler(async (req, res) => {
+  const invader = req.player;
+  const defender = await Player.findById(req.body.opponent_id);
+
+  let invaderTeam = await prepareTeam(invader);
+  let defenderTeam = await prepareTeam(defender);
+
+  const battle = new Battle({
+    invader: {
+      player: invader._id,
+      team: invaderTeam,
+    },
+    defender: {
+      player: defender._id,
+      team: defenderTeam,
+    },
+  });
+
+  const battleResult = await battle.battle(invader, defender);
+
+  res.status(201).json(battleResult);
+});
+
 module.exports = {
   summon,
   removeFromStorage,
@@ -325,4 +376,5 @@ module.exports = {
   removeFromTeam,
   getTeam,
   merge,
+  battle,
 };

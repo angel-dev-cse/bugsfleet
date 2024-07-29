@@ -8,7 +8,8 @@ const {
   addToTeam,
   removeFromTeam,
   getTeam,
-  merge
+  merge,
+  battle
 } = require("../controllers/gameController");
 
 router.get("/summon", auth, summon);
@@ -18,5 +19,6 @@ router.post("/team", auth, addToTeam);
 router.delete("/team", auth, removeFromTeam);
 router.get("/team", auth, getTeam);
 router.post("/merge", auth, merge);
+router.get("/battle", auth, battle);
 
 module.exports = router;

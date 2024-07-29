@@ -3,7 +3,7 @@ const mongoose = require("mongoose"); // Erase if already required
 // Subdocument schema for players in battle
 let playerSchema = new mongoose.Schema({
   player: {
-    type: mongoose.Schema.ObjectId.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Player",
   },
   team: [
@@ -24,29 +24,38 @@ let playerSchema = new mongoose.Schema({
         type: Number,
         required: true,
       },
-      attackSpeed: {
+      attackRate: {
         type: Number,
         required: true,
       },
-      attackRate: {
+      attackSpeed: {
         type: Number,
         required: true,
       },
     },
   ],
-  rounds: [battleRoundSchema],
 });
 
 // subdocument schema for battle rounds
 let battleRoundSchema = new mongoose.Schema({
-  rounds: {
+  round: {
     type: Number,
     required: true,
   },
   // based on combat speed except for the first round where the attacker always goes first
-  firstTurn: playerSchema,
-  secondTurn: playerSchema,
-  damage: {
+  firstTurn: {
+    type: Number,
+    required: true,
+  },
+  secondTurn: {
+    type: Number,
+    required: true,
+  },
+  firstDamage: {
+    type: Number,
+    required: true,
+  },
+  secondDamage: {
     type: Number,
     required: true,
   },
@@ -55,83 +64,207 @@ let battleRoundSchema = new mongoose.Schema({
 // Declare the Schema of the Mongo model
 var battleSchema = new mongoose.Schema({
   winner: {
-    type: mongoose.Schema.ObjectId.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Player",
   },
   invader: playerSchema,
   defender: playerSchema,
+  rounds: [battleRoundSchema],
 });
 
+// fight between two bugs
+battleSchema.methods.fight = async function (
+  first,
+  firstBugPos,
+  second,
+  secondBugPos,
+  round
+) {
+  let firstPlayer = this.invader;
+  let secondPlayer = this.defender;
 
-battleSchema.methods.fight() = async function(first, firstBugPos, second, secondBugPos) {
-    if(first == 1) {
-        first = this.invader;
-        second = this.defender; 
+  if (first == 2) {
+    firstPlayer = this.defender;
+    secondPlayer = this.invader;
+  }
+
+  //   console.log([first, firstBugPos, second, secondBugPos]);
+
+  let firstBug = firstPlayer.team[firstBugPos];
+  let secondBug = secondPlayer.team[secondBugPos];
+
+  // firstBugHealth(after battle), firstBugDamage(if any), secondBugHealth(after battle), secondBugDamage(if any)
+  let roundRecord = [firstBug.health, 0, secondBug.health, 0];
+
+  // two bugs fight each other
+  // first turn
+  let chance = Math.random() * 100;
+  if (firstBug.attackRate > chance) {
+    secondBug.health -= firstBug.power;
+
+    // text log for visaualization
+    if (first == 1) {
+      console.log(
+        `Invader's ${firstBug.rank}* ${firstBug.name} attacks for ${firstBug.power} damage`
+      );
     } else {
-        first = this.defender;
-        second = this.invader;
+      console.log(
+        `Defenders's ${firstBug.rank}* ${firstBug.name} attacks for ${firstBug.power} damage`
+      );
     }
 
-    let firstBug = first.team[firstBugPos];
-    let secondBug = second.team[secondBugPos];
-
-    
-    // two bugs fight each other
-    // first turn
-    const chance = Math.random()*100;
-    if(firstBug.attackRate > chance) {
-        secondBug.health -= firstBug.power;
-    }
-    // second turn (attack only if the bug has health)
-    if(secondBug.health > 0) {
-        if(secondBug.attackRate > chance) {
-            firstBug.health -= secondBug.power;
-        }
-    }
-
-    console.log([first, firstBug, second, secondBug]);
-    return [first, firstBug, second, secondBug];
-}
-
-battleSchema.methods.battle() = async function() {
-    // battle between two players
-    let invader = this.invader;
-    let defender = this.defender;
-
-    // sort the teams based on attack speed ()
-    invader.team.sort((a, b) => b.attackSpeed - a.attackSpeed);
-    defender.team.sort((a, b) => b.attackSpeed - a.attackSpeed);
-
-    let round = 0;
-
-    while(invader.team.length > 0 && defender.team.length > 0) {
-        round++;
-
-        // fight(first turn, first bug pos in array, second turn, second bug pos in array)
-
-        console.log(fight([1, 0, 2, 0]));
-
-        if(round == 1) {
-            // first round, invader goes first
-            [invader.team[0], defender.team[0]] = fight(invader, defender);
-        } else {
-            if(invader.team[0].bug.attackSpeed > defender.team[0].bug.attackSpeed) {
-                [invader.team[0], defender.team[0]] = fight(invader, defender);
-            } else {
-                [defender.team[0], invader.team[0]] = fight(defender, invader);
-            }
-        }
-        // temporary
-        break;
-    }
-
-    if(invader.team.length > 0) {
-        this.winner = invader.player;
+    roundRecord[1] = firstBug.power;
+    roundRecord[2] = secondBug.health;
+  } else {
+    if (first == 1) {
+      console.log(
+        `Invader's ${firstBug.rank}* ${firstBug.name} misses the attack`
+      );
     } else {
-        this.winner = defender.player;
+      console.log(
+        `Defenders's ${firstBug.rank}* ${firstBug.name} misses the attack`
+      );
+    }
+  }
+
+  // second turn (attack only if the bug has health)
+  chance = Math.random() * 100;
+  if (secondBug.health > 0) {
+    if (secondBug.attackRate > chance) {
+      firstBug.health -= secondBug.power;
+
+      // text log for visaualization
+      if (second == 1) {
+        console.log(
+          `Invader's ${secondBug.rank}* ${secondBug.name} attacks for ${secondBug.power} damage`
+        );
+      } else {
+        console.log(
+          `Defenders's ${secondBug.rank}* ${secondBug.name} attacks for ${secondBug.power} damage`
+        );
+      }
+
+      roundRecord[3] = secondBug.power;
+      roundRecord[0] = firstBug.health;
+    } else {
+      if (second == 1) {
+        console.log(
+          `Invader's ${secondBug.rank}* ${secondBug.name} misses the attack`
+        );
+      } else {
+        console.log(
+          `Defenders's ${secondBug.rank}* ${secondBug.name} misses the attack`
+        );
+      }
+    }
+  }
+
+  this.rounds.push({
+    round: round,
+    firstTurn: first,
+    secondTurn: second,
+    firstDamage: roundRecord[1],
+    secondDamage: roundRecord[3],
+  });
+
+  return [first, firstBug, second, secondBug];
+};
+
+// fight between the two players
+battleSchema.methods.battle = async function () {
+  const Player = require("../models/PlayerModel");
+  // for finding updated player info (ig name, etc)
+  const iPlayer = await Player.findById(this.invader.player);
+  const dPlayer = await Player.findById(this.defender.player);
+
+  let iTeam = this.invader.team;
+  let dTeam = this.defender.team;
+  // console.log("Invader", this.invader);
+
+  // return;
+
+  // this.prepareBattle();
+
+  // sort the teams based on attack speed
+  // invader.team.sort((a, b) => b.attackSpeed - a.attackSpeed);
+  // defender.team.sort((a, b) => b.attackSpeed - a.attackSpeed);
+
+  let round = 0;
+
+  while (iTeam.length > 0 && dTeam.length > 0) {
+    round++;
+
+    // fight(first turn, first bug pos in array, second turn, second bug pos in array)
+
+    // console.log(await this.fight(1, 0, 2, 0));
+    [];
+    // this.fight(1, 0, 2, 0);
+    let first = 1;
+    let firstPos = 0;
+    let second = 2;
+    let secondPos = 0;
+    let result = [];
+
+    if (round == 1) {
+      // first round, invader goes first - no change keep the initial values
+    } else {
+      if (iTeam[0].attackSpeed > dTeam[0].attackSpeed) {
+        // no change as well
+      } else {
+        first = 2;
+        second = 1;
+      }
     }
 
-    return this;
+    result = await this.fight(first, firstPos, second, secondPos, round);
+
+    // update the teams based on result
+    // first bug is dead
+    if (result[1].health <= 0) {
+      if (first == 1) {
+        // remove the first bug from the first team
+        iTeam.shift();
+      } else {
+        // remove the first bug from the second team
+        dTeam.shift();
+      }
+    } else {
+      // update the first bug info
+      if (first == 1) {
+        iTeam[0] = result[1];
+      } else {
+        dTeam[0] = result[1];
+      }
+    }
+    //second bug is dead
+    if (result[3].health <= 0) {
+      if (second == 1) {
+        // remove from first bug from the first team
+        iTeam.shift();
+      } else {
+        // remove the first bug from the second team
+        dTeam.shift();
+      }
+    } else {
+      // update the second bug info
+      if (second == 1) {
+        iTeam[0] = result[3];
+      } else {
+        dTeam[0] = result[3];
+      }
+    }
+
+    // console.log(result);
+    // console.log(iTeam, dTeam);
+  }
+
+  if (this.invader.team.length > 0) {
+    this.winner = this.invader.player;
+  } else {
+    this.winner = this.defender.player;
+  }
+
+  return this;
 };
 
 //Export the model
