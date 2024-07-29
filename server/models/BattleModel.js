@@ -234,9 +234,7 @@ battleSchema.methods.battle = async function () {
     [];
     // this.fight(1, 0, 2, 0);
     let first = 1;
-    let firstPos = 0;
     let second = 2;
-    let secondPos = 0;
     let result = [];
 
     if (round == 1) {
@@ -303,8 +301,6 @@ battleSchema.methods.battle = async function () {
   // after the battle ends restore the original teams
   this.invader.team = backupITeam;
   this.defender.team = backupDTeam;
-
-  console.log(backupDTeam);
 
   return this;
 };
