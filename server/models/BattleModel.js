@@ -51,6 +51,14 @@ let battleRoundSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  firstBugPos: {
+    type: Number,
+    required: true,
+  },
+  secondBugPos: {
+    type: Number,
+    required: true,
+  },
   firstDamage: {
     type: Number,
     required: true,
@@ -59,13 +67,24 @@ let battleRoundSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  firstHealth: {
+    type: Number,
+    required: true,
+  },
+  secondHealth: {
+    type: Number,
+    required: true,
+  },
 });
 
 // Declare the Schema of the Mongo model
 var battleSchema = new mongoose.Schema({
   winner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Player",
+    player: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Player",
+    },
+    team: {}, // team after the battle
   },
   invader: playerSchema,
   defender: playerSchema,
@@ -163,8 +182,12 @@ battleSchema.methods.fight = async function (
     round: round,
     firstTurn: first,
     secondTurn: second,
+    firstBugPos: firstBugPos,
+    secondBugPos: secondBugPos,
     firstDamage: roundRecord[1],
     secondDamage: roundRecord[3],
+    firstHealth: roundRecord[0],
+    secondHealth: roundRecord[2],
   });
 
   return [first, firstBug, second, secondBug];
@@ -176,6 +199,10 @@ battleSchema.methods.battle = async function () {
   // for finding updated player info (ig name, etc)
   const iPlayer = await Player.findById(this.invader.player);
   const dPlayer = await Player.findById(this.defender.player);
+
+  // create a copy of the teams as backup
+  const backupITeam = [...this.invader.team];
+  const backupDTeam = [...this.defender.team];
 
   let iTeam = this.invader.team;
   let dTeam = this.defender.team;
@@ -190,8 +217,15 @@ battleSchema.methods.battle = async function () {
   // defender.team.sort((a, b) => b.attackSpeed - a.attackSpeed);
 
   let round = 0;
+  let firstPos = 0;
+  let secondPos = 0;
 
-  while (iTeam.length > 0 && dTeam.length > 0) {
+  while (
+    iTeam.length > 0 &&
+    dTeam.length > 0 &&
+    firstPos < iTeam.length &&
+    secondPos < dTeam.length
+  ) {
     round++;
 
     // fight(first turn, first bug pos in array, second turn, second bug pos in array)
@@ -222,11 +256,11 @@ battleSchema.methods.battle = async function () {
     // first bug is dead
     if (result[1].health <= 0) {
       if (first == 1) {
-        // remove the first bug from the first team
-        iTeam.shift();
+        // move onto the next bug in the first team
+        firstPos++;
       } else {
-        // remove the first bug from the second team
-        dTeam.shift();
+        // move onto the next bug in the first team
+        secondPos++;
       }
     } else {
       // update the first bug info
@@ -239,11 +273,11 @@ battleSchema.methods.battle = async function () {
     //second bug is dead
     if (result[3].health <= 0) {
       if (second == 1) {
-        // remove from first bug from the first team
-        iTeam.shift();
+        // move onto the next bug in the first team
+        firstPos++;
       } else {
-        // remove the first bug from the second team
-        dTeam.shift();
+        // move onto the next bug in the first team
+        secondPos++;
       }
     } else {
       // update the second bug info
@@ -259,10 +293,18 @@ battleSchema.methods.battle = async function () {
   }
 
   if (this.invader.team.length > 0) {
-    this.winner = this.invader.player;
+    this.winner.player = this.invader.player._id;
+    this.winner.team = this.invader.team;
   } else {
-    this.winner = this.defender.player;
+    this.winner.player = this.defender.player._id;
+    this.winner.team = this.defender.team;
   }
+
+  // after the battle ends restore the original teams
+  this.invader.team = backupITeam;
+  this.defender.team = backupDTeam;
+
+  console.log(backupDTeam);
 
   return this;
 };
