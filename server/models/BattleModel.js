@@ -86,9 +86,17 @@ var battleSchema = new mongoose.Schema({
     },
     team: {}, // team after the battle
   },
+  rewards: {
+    experience: Number,
+    rank: Number,
+    genes: Number,
+    pheromones: Number,
+    eggs: Number,
+  },
   invader: playerSchema,
   defender: playerSchema,
   rounds: [battleRoundSchema],
+  createdAt: { type: Date, default: Date.now },
 });
 
 // fight between two bugs
@@ -200,9 +208,11 @@ battleSchema.methods.battle = async function () {
   const iPlayer = await Player.findById(this.invader.player);
   const dPlayer = await Player.findById(this.defender.player);
 
-  // create a copy of the teams as backup
-  const backupITeam = [...this.invader.team];
-  const backupDTeam = [...this.defender.team];
+  // create a deep copy of the teams as backup
+  const backupITeam = JSON.parse(JSON.stringify(this.invader.team));
+  const backupDTeam = JSON.parse(JSON.stringify(this.defender.team));
+
+  let winner;
 
   let iTeam = this.invader.team;
   let dTeam = this.defender.team;
@@ -217,6 +227,8 @@ battleSchema.methods.battle = async function () {
   // defender.team.sort((a, b) => b.attackSpeed - a.attackSpeed);
 
   let round = 0;
+  let first = 1;
+  let second = 2;
   let firstPos = 0;
   let secondPos = 0;
 
@@ -233,14 +245,19 @@ battleSchema.methods.battle = async function () {
     // console.log(await this.fight(1, 0, 2, 0));
     [];
     // this.fight(1, 0, 2, 0);
-    let first = 1;
-    let second = 2;
     let result = [];
 
     if (round == 1) {
       // first round, invader goes first - no change keep the initial values
     } else {
-      if (iTeam[0].attackSpeed > dTeam[0].attackSpeed) {
+      // if first turn is invader team (first=1), check if the invader's attack speed is greater than the defender's attack speed
+
+      // if not, switch the turns
+      if (
+        first == 1
+          ? iTeam[firstPos].attackSpeed > dTeam[secondPos].attackSpeed
+          : dTeam[firstPos].attackSpeed > iTeam[secondPos].attackSpeed
+      ) {
         // no change as well
       } else {
         first = 2;
@@ -253,12 +270,15 @@ battleSchema.methods.battle = async function () {
     // update the teams based on result
     // first bug is dead
     if (result[1].health <= 0) {
+      console.log(result[1].name, result[1].health);
       if (first == 1) {
         // move onto the next bug in the first team
         firstPos++;
+        console.log("First FirstPos ", firstPos);
       } else {
         // move onto the next bug in the first team
         secondPos++;
+        console.log("First SecondPos ", secondPos);
       }
     } else {
       // update the first bug info
@@ -270,12 +290,15 @@ battleSchema.methods.battle = async function () {
     }
     //second bug is dead
     if (result[3].health <= 0) {
+      console.log(result[1].name, result[1].health);
       if (second == 1) {
         // move onto the next bug in the first team
         firstPos++;
+        console.log("Second FirstPos ", firstPos);
       } else {
         // move onto the next bug in the first team
         secondPos++;
+        console.log("Second SecondPos ", secondPos);
       }
     } else {
       // update the second bug info
@@ -285,22 +308,69 @@ battleSchema.methods.battle = async function () {
         dTeam[0] = result[3];
       }
     }
-
-    // console.log(result);
-    // console.log(iTeam, dTeam);
   }
+
+  // reward the winner with genes, pheromones, eggs based on the opponent's rank points
+  // Calculate experience, rank points based on the opponent's rank points
+  let rankDiffer = Math.abs(dPlayer.rank - iPlayer.rank);
+
+  if (rankDiffer < 20) {
+    rankDiffer = 20;
+  }
+
+  const experience = rankDiffer * 1.5;
+  const rank = rankDiffer > 50 ? 50 : rankDiffer;
+  const genes = rankDiffer * 1.5 > 5 ? 5 : rankDiffer * 1.5;
+  const pheromones = rankDiffer * 1.5 > 5 ? 5 : rankDiffer * 1.5;
+  const eggs = 3;
 
   if (this.invader.team.length > 0) {
     this.winner.player = this.invader.player._id;
     this.winner.team = this.invader.team;
+    winner = iPlayer;
+
+    // add the battle entries
+    iPlayer.battleRecords.push({
+      battle_id: this._id,
+      win: true,
+    });
+    dPlayer.battleRecords.push({ battle_id: this._id, win: false });
   } else {
     this.winner.player = this.defender.player._id;
     this.winner.team = this.defender.team;
+    winner = dPlayer;
+
+    // add the battle entries
+    dPlayer.battleRecords.push({
+      battle_id: this._id,
+      win: true,
+    });
+    iPlayer.battleRecords.push({ battle_id: this._id, win: false });
   }
+
+  // add rewards to the winner
+  winner.inventory.experience += experience;
+  winner.inventory.rank += rank;
+  winner.inventory.genes += genes;
+  winner.inventory.pheromones += pheromones;
+  winner.inventory.eggs += eggs;
+
+  this.rewards = {
+    experience,
+    rank,
+    genes,
+    pheromones,
+    eggs,
+  };
 
   // after the battle ends restore the original teams
   this.invader.team = backupITeam;
   this.defender.team = backupDTeam;
+
+  // save the data
+  // await this.save();
+  // await iPlayer.save();
+  // await dPlayer.save();
 
   return this;
 };

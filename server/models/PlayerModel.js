@@ -103,10 +103,14 @@ const playerSchema = new mongoose.Schema({
       type: Number,
       default: 0,
     },
+    // genes are used for merging bugs and increasing chance of a successful merge
+    // 20 Mandatory and extra 300 for 20% extra merge chance
     genes: {
       type: Number,
       default: 0,
     },
+    // pheromones are used for enhancing bugs before battle (used in battles)
+    // 100 to enhance the bugs in the army's rank by 1 (level 4 bugs won't be affected)
     pheromones: {
       type: Number,
       default: 0,
@@ -127,9 +131,13 @@ const playerSchema = new mongoose.Schema({
     },
   },
   // should have battle records
-  battleRecords: {
-    type: mongoose.Schema.Types.ObjectId,
-  },
+  battleRecords: [{
+    battle_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Battle",
+    },
+    win: { type: Boolean, default: false},
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
