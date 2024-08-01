@@ -219,15 +219,6 @@ battleSchema.methods.battle = async function () {
 
   let iTeam = this.invader.team;
   let dTeam = this.defender.team;
-  // console.log("Invader", this.invader);
-
-  // return;
-
-  // this.prepareBattle();
-
-  // sort the teams based on attack speed
-  // invader.team.sort((a, b) => b.attackSpeed - a.attackSpeed);
-  // defender.team.sort((a, b) => b.attackSpeed - a.attackSpeed);
 
   let round = 0;
   let first = 1;
@@ -256,29 +247,29 @@ battleSchema.methods.battle = async function () {
       // if first turn is invader team (first=1), check if the invader's attack speed is greater than the defender's attack speed
 
       // if not, switch the turns
+      // invader has first priority if the attackspeed is the same
       if (
         first == 1
-          ? iTeam[iPos].attackSpeed > dTeam[dPos].attackSpeed
+          ? iTeam[iPos].attackSpeed >= dTeam[dPos].attackSpeed
           : dTeam[iPos].attackSpeed > iTeam[dPos].attackSpeed
       ) {
-        // no change as well
         [iResult, dResult] = await this.fight(first, iPos, second, dPos, round);
       } else {
         first = 2;
         second = 1;
-        // pointers should be switched
+
         [dResult, iResult] = await this.fight(first, dPos, second, iPos, round);
       }
     }
-    
+
     // update the teams based on result
     // first bug is dead
     if (iResult[1].health <= 0) {
       iTeam[iPos] = iResult[1];
       // move onto the next bug of invader team
-      console.log(iResult[1].name, iResult[1].health);
+      // console.log(iResult[1].name, iResult[1].health);
       iPos++;
-      console.log("Invader iPos ", iPos);
+      // console.log("Invader iPos ", iPos);
     } else {
       // update the first bug info
       iTeam[iPos] = iResult[1];
@@ -287,9 +278,9 @@ battleSchema.methods.battle = async function () {
     if (dResult[1].health <= 0) {
       dTeam[0] = dResult[1];
       // move onto the next bug of defender team
-      console.log(dResult[1].name, dResult[1].health);
+      // console.log(dResult[1].name, dResult[1].health);
       dPos++;
-      console.log("Defender dPos ", dPos);
+      // console.log("Defender dPos ", dPos);
     } else {
       // update the second bug info
       dTeam[0] = dResult[1];
@@ -320,7 +311,9 @@ battleSchema.methods.battle = async function () {
       battle_id: this._id,
       win: true,
     });
+    iPlayer.counts.battle.won++;
     dPlayer.battleRecords.push({ battle_id: this._id, win: false });
+    dPlayer.counts.battle.lost++;
   } else {
     this.winner.player = this.defender.player._id;
     this.winner.team = this.defender.team;
@@ -331,7 +324,9 @@ battleSchema.methods.battle = async function () {
       battle_id: this._id,
       win: true,
     });
+    dPlayer.counts.battle.won++;
     iPlayer.battleRecords.push({ battle_id: this._id, win: false });
+    iPlayer.counts.battle.lost++;
   }
 
   // add rewards to the winner
@@ -354,9 +349,9 @@ battleSchema.methods.battle = async function () {
   this.defender.team = backupDTeam;
 
   // save the data
-  // await this.save();
-  // await iPlayer.save();
-  // await dPlayer.save();
+  await this.save();
+  await iPlayer.save();
+  await dPlayer.save();
 
   return this;
 };

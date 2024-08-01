@@ -131,13 +131,27 @@ const playerSchema = new mongoose.Schema({
     },
   },
   // should have battle records
-  battleRecords: [{
-    battle_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Battle",
+  battleRecords: [
+    {
+      battle_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Battle",
+      },
+      win: { type: Boolean, default: false },
     },
-    win: { type: Boolean, default: false},
-  }],
+  ],
+  counts: {
+    battle: {
+      won: {
+        type: Number,
+        default: 0,
+      },
+      lost: {
+        type: Number,
+        default: 0,
+      },
+    },
+  },
   createdAt: {
     type: Date,
     default: Date.now,
