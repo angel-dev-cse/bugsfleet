@@ -198,7 +198,10 @@ battleSchema.methods.fight = async function (
     secondHealth: roundRecord[2],
   });
 
-  return [first, firstBug, second, secondBug];
+  return [
+    [first, firstBug],
+    [second, secondBug],
+  ];
 };
 
 // fight between the two players
@@ -229,84 +232,67 @@ battleSchema.methods.battle = async function () {
   let round = 0;
   let first = 1;
   let second = 2;
-  let firstPos = 0;
-  let secondPos = 0;
+  let iPos = 0;
+  let dPos = 0;
 
   while (
     iTeam.length > 0 &&
     dTeam.length > 0 &&
-    firstPos < iTeam.length &&
-    secondPos < dTeam.length
+    iPos < iTeam.length &&
+    dPos < dTeam.length
   ) {
     round++;
 
     // fight(first turn, first bug pos in array, second turn, second bug pos in array)
 
     // console.log(await this.fight(1, 0, 2, 0));
-    [];
     // this.fight(1, 0, 2, 0);
-    let result = [];
+    let iResult, dResult;
 
     if (round == 1) {
       // first round, invader goes first - no change keep the initial values
+      [iResult, dResult] = await this.fight(first, iPos, second, dPos, round);
     } else {
       // if first turn is invader team (first=1), check if the invader's attack speed is greater than the defender's attack speed
 
       // if not, switch the turns
       if (
         first == 1
-          ? iTeam[firstPos].attackSpeed > dTeam[secondPos].attackSpeed
-          : dTeam[firstPos].attackSpeed > iTeam[secondPos].attackSpeed
+          ? iTeam[iPos].attackSpeed > dTeam[dPos].attackSpeed
+          : dTeam[iPos].attackSpeed > iTeam[dPos].attackSpeed
       ) {
         // no change as well
+        [iResult, dResult] = await this.fight(first, iPos, second, dPos, round);
       } else {
         first = 2;
         second = 1;
+        // pointers should be switched
+        [dResult, iResult] = await this.fight(first, dPos, second, iPos, round);
       }
     }
-
-    result = await this.fight(first, firstPos, second, secondPos, round);
-
+    
     // update the teams based on result
     // first bug is dead
-    if (result[1].health <= 0) {
-      console.log(result[1].name, result[1].health);
-      if (first == 1) {
-        // move onto the next bug in the first team
-        firstPos++;
-        console.log("First FirstPos ", firstPos);
-      } else {
-        // move onto the next bug in the first team
-        secondPos++;
-        console.log("First SecondPos ", secondPos);
-      }
+    if (iResult[1].health <= 0) {
+      iTeam[iPos] = iResult[1];
+      // move onto the next bug of invader team
+      console.log(iResult[1].name, iResult[1].health);
+      iPos++;
+      console.log("Invader iPos ", iPos);
     } else {
       // update the first bug info
-      if (first == 1) {
-        iTeam[0] = result[1];
-      } else {
-        dTeam[0] = result[1];
-      }
+      iTeam[iPos] = iResult[1];
     }
-    //second bug is dead
-    if (result[3].health <= 0) {
-      console.log(result[1].name, result[1].health);
-      if (second == 1) {
-        // move onto the next bug in the first team
-        firstPos++;
-        console.log("Second FirstPos ", firstPos);
-      } else {
-        // move onto the next bug in the first team
-        secondPos++;
-        console.log("Second SecondPos ", secondPos);
-      }
+
+    if (dResult[1].health <= 0) {
+      dTeam[0] = dResult[1];
+      // move onto the next bug of defender team
+      console.log(dResult[1].name, dResult[1].health);
+      dPos++;
+      console.log("Defender dPos ", dPos);
     } else {
       // update the second bug info
-      if (second == 1) {
-        iTeam[0] = result[3];
-      } else {
-        dTeam[0] = result[3];
-      }
+      dTeam[0] = dResult[1];
     }
   }
 
